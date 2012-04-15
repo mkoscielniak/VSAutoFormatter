@@ -11,7 +11,6 @@ namespace VSAutoFormatter
 {
     public class DocumentListener : IDisposable, IVsRunningDocTableEvents3
     {
-        private RunningDocumentTable _runningDocumentTable;
         private uint? _cookie;
         private static volatile object _mutex;
 
@@ -19,8 +18,11 @@ namespace VSAutoFormatter
         public DocumentListener(IServiceProvider serviceProvider)
         {
             _mutex = new object();
-            _runningDocumentTable = new RunningDocumentTable(serviceProvider);
+            RunningDocumentTable = new RunningDocumentTable(serviceProvider);
         }
+
+
+        public RunningDocumentTable RunningDocumentTable { get; protected set; }
 
 
         #region Events
@@ -41,7 +43,7 @@ namespace VSAutoFormatter
 
         public void Start()
         {
-            _cookie = _runningDocumentTable.Advise(this);
+            _cookie = RunningDocumentTable.Advise(this);
         }
 
 
@@ -52,15 +54,15 @@ namespace VSAutoFormatter
         {
             lock (_mutex)
             {
+                if (RunningDocumentTable == null)
+                    return;
+
                 if (!_cookie.HasValue)
                     return;
 
-                if (_runningDocumentTable == null)
-                    return;
-
-                _runningDocumentTable.Unadvise(_cookie.Value);
+                RunningDocumentTable.Unadvise(_cookie.Value);
                 _cookie = null;
-                _runningDocumentTable = null;
+                RunningDocumentTable = null;
             }
         }
 
